@@ -1,0 +1,1 @@
+# redmi-camera-lite
