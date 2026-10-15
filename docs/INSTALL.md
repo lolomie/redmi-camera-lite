@@ -49,6 +49,22 @@ adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w de.lolomie.redmicamera.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-Zwei Tests: vorne/hinten JPEG und fünf Sekunden FHD30 mit Audiotrack,
+Zwei Alltagstests: vorne/hinten JPEG und fünf Sekunden FHD30 mit Audiotrack,
 echten PTS und decodierbarem Bild; hinten zusätzlich Rotation.
-Das prüft weder 60 FPS noch native 200 MP, Zeitlupe oder Dauerthermik.
+Vier weitere `SlowMotionDeviceTest`-Tests prüfen die exponierten Zeitlupenmodi
+mit etwa fünf realen Sekunden, fehlendem Ton, verlangsamter PTS-Zeitachse und
+Framezahl gegen Echtzeit. Clips bleiben gespeichert. Nicht exponierte
+Kamera-/FPS-Paare werden geskippt; sonstige Fehler sind echte fehlgeschlagene
+Tests. Diese sechs Gerätetests sind in der Cloud nur kompiliert, nicht ausgeführt.
+Das prüft weder normale 60 FPS noch native 200 MP oder Dauerthermik.
+
+## Zeitlupe ohne ADB testen
+
+APK 0.2.0 über die vorhandene App installieren (gleicher Debug-Schlüssel).
+Oben **Zeitlupe** wählen und zuerst hinten **1280×720 · 120 fps** testen.
+Etwa fünf Sekunden ein bewegtes Motiv bei gutem Licht aufnehmen und stoppen.
+Dann **Letzte Aufnahme prüfen / Bericht teilen** öffnen. Bericht und sichtbare
+Wiedergabe beurteilen; 120 fps mit 30-fps-Wiedergabe erwartet etwa 20 Sekunden,
+240 fps etwa 40 Sekunden. Ein `file_criteria_passed=true` ist noch keine
+Gerätezertifizierung. Bei Problemen Fehlermeldung und Prüfbericht sichern,
+danach über **Kamera** zum normalen Pfad zurückkehren.

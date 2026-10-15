@@ -67,6 +67,8 @@ class CameraController(private val context: Context) : DefaultLifecycleObserver 
         private set
     var hasFlash by mutableStateOf(false)
         private set
+    var hasAutoFocus by mutableStateOf(true)
+        private set
     var uhdAvailable by mutableStateOf(false)
         private set
     var uhd by mutableStateOf(false)
@@ -149,6 +151,10 @@ class CameraController(private val context: Context) : DefaultLifecycleObserver 
                 return
             }
             val info = cameraProvider.getCameraInfo(selector)
+            hasAutoFocus = Camera2CameraInfo.from(info)
+                .getCameraCharacteristic(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)
+                ?.any { it != CameraCharacteristics.CONTROL_AF_MODE_OFF &&
+                    it != CameraCharacteristics.CONTROL_AF_MODE_EDOF } == true
             hasFlash = info.hasFlashUnit()
             if (!hasFlash) flash = false
             val qualities = Recorder.getVideoCapabilities(info).getSupportedQualities(androidx.camera.core.DynamicRange.SDR)
@@ -263,8 +269,15 @@ class CameraController(private val context: Context) : DefaultLifecycleObserver 
     fun focus(x: Float, y: Float) {
         val previewView = view ?: return
         val point = previewView.meteringPointFactory.createPoint(x, y)
-        val action = FocusMeteringAction.Builder(point).setAutoCancelDuration(3, TimeUnit.SECONDS).build()
+        val flags = FocusMeteringAction.FLAG_AE or FocusMeteringAction.FLAG_AWB or
+            if (hasAutoFocus) FocusMeteringAction.FLAG_AF else 0
+        val action = FocusMeteringAction.Builder(point, flags).setAutoCancelDuration(3, TimeUnit.SECONDS).build()
         val current = camera ?: return
+        if (!current.cameraInfo.isFocusMeteringSupported(action)) {
+            status = if (hasAutoFocus) "Fokusmessung an dieser Position nicht verfügbar."
+                else "Kamera mit festem Fokus; Belichtungsmessung per Tippen nicht verfügbar."
+            return
+        }
         val result = current.cameraControl.startFocusAndMetering(action)
         result.addListener({
             if (camera === current && !disposed) runCatching { result.get() }.onFailure { status = "Fokus an dieser Position nicht verfügbar." }

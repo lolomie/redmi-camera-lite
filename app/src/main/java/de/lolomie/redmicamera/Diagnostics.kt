@@ -13,8 +13,8 @@ import android.util.Size
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.core.DynamicRange
 import androidx.camera.video.Recorder
+import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlin.math.floor
 
 /** Read-only API inventory. Call on a worker thread; never opens a capture session. */
 object Diagnostics {
@@ -83,6 +83,7 @@ object Diagnostics {
             for (info in provider.availableCameraInfos.take(16)) {
                 try {
                     appendLine("  facing=${facing(info.lensFacing)}; qualities=${Recorder.getVideoCapabilities(info).getSupportedQualities(DynamicRange.SDR).joinToString()}")
+                    appendLine("    CameraX regular-session frame-rate ranges=${info.supportedFrameRateRanges.joinToString()}; quality and FPS combination still requires session validation.")
                 } catch (e: Exception) {
                     appendLine("  quality enumeration BLOCKED: ${failure(e)}")
                 }
@@ -105,7 +106,7 @@ object Diagnostics {
                         appendLine("    profile/levels=${caps.profileLevels.take(12).joinToString { "${it.profile}/${it.level}" }}")
                         for (size in listOf(Size(1280, 720), Size(1920, 1080), Size(3840, 2160))) {
                             val supported = video.isSizeSupported(size.width, size.height)
-                            appendLine("    $size: supported=$supported${if (supported) "; fps=${video.getSupportedFrameRatesFor(size.width, size.height)}; 60fps=${video.areSizeAndRateSupported(size.width, size.height, 60.0)}" else ""}")
+                            appendLine("    $size: supported=$supported${if (supported) "; fps=${video.getSupportedFrameRatesFor(size.width, size.height)}; 60fps=${video.areSizeAndRateSupported(size.width, size.height, 60.0)}; 120fps=${video.areSizeAndRateSupported(size.width, size.height, 120.0)}; 240fps=${video.areSizeAndRateSupported(size.width, size.height, 240.0)}" else ""}")
                         }
                         appendLine("    Codec limits do not prove a camera+encoder configuration can run concurrently.")
                     } catch (e: Exception) {
@@ -119,10 +120,11 @@ object Diagnostics {
         }
 
         appendLine("\nFeature findings:")
-        appendLine("  200MP: ${if (has200Mp) "API_EXPOSED JPEG size >= 190 million pixels" else "BLOCKED: no JPEG output >= 190 million pixels found"}; exact dimensions above; CAPTURED/DEVICE_VERIFIED pending.")
+        appendLine("  200MP UHR pixel-mode path: ${if (has200Mp) "API_EXPOSED native approximately 200MP UHR JPEG path" else "BLOCKED: complete UHR capability + maximum-resolution JPEG + pixel-mode request + native sensor dimensions not exposed"}; exact dimensions/pixel counts above; CAPTURED/DEVICE_VERIFIED pending.")
+        appendLine("  Default-pixel-mode JPEG dimensions are listed independently; UHR absence alone does not rule out a native large JPEG exposed through the default map.")
         appendLine("  Ultra-high-resolution sensor capability: $hasUltraHighResolution; does not by itself prove 200MP JPEG capture.")
         appendLine("  Ultrawide: focal lengths and sensor geometry above are API evidence only. No automatic lens-role claim; OEM mapping and device capture required.")
-        appendLine("  60fps: ${if (has60FpsEvidence) "API_EXPOSED timing or AE range evidence" else "BLOCKED: no >=60fps timing/AE evidence found"}; a matching size, capture session and encoded file still require validation.")
+        appendLine("  Ordinary 60fps video: ${if (has60FpsEvidence) "API_EXPOSED regular AE range and matching stream timing candidate" else "BLOCKED: no regular AE + stream timing combination exposing 60fps found"}; encoder/session/capture validation pending. Constrained-high-speed 120/240fps is separate and does not enable ordinary 60fps.")
         appendLine("  Slow motion: ${if (hasSlowMotionEvidence) "API_EXPOSED constrained-high-speed combinations" else "BLOCKED: no constrained-high-speed combinations exposed"}; capture and slow-motion playback not verified.")
         appendLine("  OEM_ADVERTISED: no manufacturer specifications fetched or verified by this report.")
         appendLine("  CAPTURED: none. DEVICE_VERIFIED: none. No test capture or camera session was created.")
@@ -155,8 +157,9 @@ object Diagnostics {
             appendLine("    AWB modes=${c[CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES]?.joinToString()}; manual requests require advertised capabilities and session validation.")
             if (Build.VERSION.SDK_INT >= 30) appendLine("    zoom ratio=${c[CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE]}")
             val fpsRanges = c[CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES].orEmpty()
-            has60Fps = fpsRanges.any { it.upper >= 60 }
+            val regularAe60 = fpsRanges.any { it.contains(60) }
             appendLine("    AE FPS ranges=${fpsRanges.joinToString()}; these ranges are not size/session guarantees.")
+            appendLine("    Ordinary-session AE exposes 60fps=$regularAe60; high-speed FPS ranges are evaluated separately.")
 
             fun jpeg(map: StreamConfigurationMap?, label: String) {
                 if (map == null) {
@@ -165,9 +168,8 @@ object Diagnostics {
                 }
                 val normal = map.getOutputSizes(ImageFormat.JPEG).orEmpty().sortedByDescending { pixels(it) }
                 val high = map.getHighResolutionOutputSizes(ImageFormat.JPEG).orEmpty().sortedByDescending { pixels(it) }
-                has200Mp = has200Mp || (normal + high).any { pixels(it) >= 190_000_000L }
-                appendLine("    $label JPEG normal: max=${normal.firstOrNull()}; ${normal.take(8).joinToString()} (${normal.size} sizes)")
-                appendLine("    $label JPEG high-resolution: max=${high.firstOrNull()}; ${high.take(8).joinToString()} (${high.size} sizes)")
+                appendLine("    $label JPEG normal: max=${normal.firstOrNull()?.let(::pixelDescription)}; ${normal.take(8).joinToString()} (${normal.size} sizes)")
+                appendLine("    $label JPEG high-resolution: max=${high.firstOrNull()?.let(::pixelDescription)}; ${high.take(8).joinToString()} (${high.size} sizes)")
             }
 
             val map = c[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]
@@ -175,18 +177,34 @@ object Diagnostics {
             if (Build.VERSION.SDK_INT >= 31) {
                 appendLine("    UHR capability=$uhr; maximum-resolution pixel array=${c[CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE_MAXIMUM_RESOLUTION]}")
                 appendLine("    SENSOR_PIXEL_MODE request key exposed=${c.availableCaptureRequestKeys?.contains(CaptureRequest.SENSOR_PIXEL_MODE) == true}")
-                jpeg(c[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION], "Maximum-resolution pixel mode")
+                val maximumMap = c[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION]
+                jpeg(maximumMap, "Maximum-resolution pixel mode")
+                val maximumJpegs = maximumMap?.getOutputSizes(ImageFormat.JPEG).orEmpty().toList() +
+                    maximumMap?.getHighResolutionOutputSizes(ImageFormat.JPEG).orEmpty().toList()
+                val native200 = CaptureModePolicy.ultraHighResolutionPhoto(CaptureCapabilities(
+                    cameraId = "inventory",
+                    ultraHighResolutionSensor = uhr,
+                    maximumResolutionJpegSizes = maximumJpegs.map { CaptureSize(it.width, it.height) },
+                    maximumResolutionSensorSize = c[CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE_MAXIMUM_RESOLUTION]?.let { CaptureSize(it.width, it.height) },
+                    sensorPixelModeRequestAvailable = c.availableCaptureRequestKeys?.contains(CaptureRequest.SENSOR_PIXEL_MODE) == true,
+                ))
+                has200Mp = native200.apiExposed
+                appendLine("    Native approximately 200MP feasibility: ${if (native200.apiExposed) "API_EXPOSED" else "BLOCKED"}; ${native200.reason}")
             } else appendLine("    UHR maximum-resolution API: BLOCKED/requires API 31")
 
             if (map != null) {
                 val videoSizes = map.getOutputSizes(MediaRecorder::class.java).orEmpty().sortedByDescending { pixels(it) }
-                appendLine("    MediaRecorder video outputs (${videoSizes.size} total, largest 16 shown):")
-                for (size in videoSizes.take(16)) {
+                val standardSizes = listOf(Size(1280, 720), Size(1920, 1080), Size(3840, 2160))
+                val displayedSizes = (videoSizes.take(16) + videoSizes.filter { it in standardSizes }).toSet()
+                appendLine("    MediaRecorder video outputs (${videoSizes.size} total; all timings checked, largest 16 plus HD/FHD/UHD shown):")
+                for (standard in standardSizes) appendLine("      Required target $standard: exposed=${standard in videoSizes}")
+                for (size in videoSizes) {
                     try {
                         val duration = map.getOutputMinFrameDuration(MediaRecorder::class.java, size)
-                        val maxFps = if (duration > 0) floor(1_000_000_000.0 / duration).toInt() else null
-                        has60Fps = has60Fps || (duration in 1..16_666_667L)
-                        appendLine("      $size: minFrameDurationNs=$duration; nominalMaxFps=${maxFps ?: "unknown"}")
+                        val maxFps = if (duration > 0) String.format(Locale.US, "%.3f", 1_000_000_000.0 / duration) else null
+                        val regular60Candidate = regularAe60 && duration in 1..16_666_667L
+                        has60Fps = has60Fps || regular60Candidate
+                        if (size in displayedSizes) appendLine("      $size: minFrameDurationNs=$duration; nominalMaxFps=${maxFps ?: "unknown"}; regular60CameraCandidate=$regular60Candidate")
                     } catch (e: Exception) {
                         appendLine("      $size timing BLOCKED: ${failure(e)}")
                     }
@@ -205,6 +223,9 @@ object Diagnostics {
     }
 
     private fun pixels(size: Size): Long = size.width.toLong() * size.height
+
+    private fun pixelDescription(size: Size): String =
+        "$size = ${pixels(size)} pixels (${String.format(Locale.US, "%.6f", pixels(size) / 1_000_000.0)} MP)"
 
     private fun facing(value: Int?): String = when (value) {
         CameraCharacteristics.LENS_FACING_FRONT -> "front"

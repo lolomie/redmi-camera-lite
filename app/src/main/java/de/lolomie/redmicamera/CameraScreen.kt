@@ -58,10 +58,17 @@ fun CameraScreen() {
     val scope = rememberCoroutineScope()
     var loadingDiagnostics by remember { mutableStateOf(false) }
     var cameraBusy by remember { mutableStateOf(false) }
+    var slowMotion by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (!granted) permission.launch(Manifest.permission.CAMERA) }
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Redmi Camera Lite", Modifier.weight(1f), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+            Text(if (slowMotion) "Zeitlupe · API-Test" else "Redmi Camera Lite", Modifier.weight(1f), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+            if (granted) {
+                TextButton(enabled = !cameraBusy && !loadingDiagnostics,
+                    onClick = { slowMotion = !slowMotion }) {
+                    Text(if (slowMotion) "Kamera" else "Zeitlupe")
+                }
+            }
             TextButton(enabled = !loadingDiagnostics && !cameraBusy, onClick = {
                 loadingDiagnostics = true
                 scope.launch {
@@ -74,7 +81,12 @@ fun CameraScreen() {
             }) { Text(if (loadingDiagnostics) "Lädt …" else "Diagnose") }
         }
         if (granted) {
-            CameraContent(Modifier.weight(1f), loadingDiagnostics) { cameraBusy = it }
+            if (slowMotion) {
+                SlowMotionScreen(Modifier.weight(1f), loadingDiagnostics,
+                    onBusy = { cameraBusy = it }, onExit = { slowMotion = false })
+            } else {
+                CameraContent(Modifier.weight(1f), loadingDiagnostics) { cameraBusy = it }
+            }
         } else {
             Text("Kamerazugriff ist für Vorschau und Aufnahmen erforderlich. Mikrofonzugriff wird erst für Video mit Ton angefragt.")
             Button(onClick = { permission.launch(Manifest.permission.CAMERA) }) { Text("Kamerazugriff erlauben") }
@@ -105,7 +117,7 @@ private fun CameraContent(modifier: Modifier, diagnosticsRunning: Boolean, onBus
     val audioPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         if (it) controller.startRecording() else controller.permissionDenied()
     }
-    DisposableEffect(controller) { onDispose { controller.dispose() } }
+    DisposableEffect(controller) { onDispose { controller.dispose(); onBusy(false) } }
     LaunchedEffect(controller.busy) { onBusy(controller.busy) }
     val startVideo = {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -169,6 +181,8 @@ private fun CameraControls(controller: CameraController, diagnosticsRunning: Boo
     startVideo: () -> Unit, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(controller.status, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
+        if (!controller.hasAutoFocus) Text("Kamera mit festem Fokus · Tippen misst nur die Belichtung, soweit unterstützt.",
+            style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CaptureMode.entries.forEach { mode ->
                 FilterChip(selected = controller.mode == mode, enabled = !controller.busy,

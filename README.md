@@ -11,6 +11,16 @@ Freigabe und exportierbare Camera2-/Encoder-Diagnose. Video startet mit dem Ziel
 Eine weiterwinklige separat erreichbare Rückkamera wird nur als unbestätigter
 API-Kandidat angeboten.
 
+Version 0.2.0 ergänzt einen separaten Camera2-Zeitlupentest: exakt exponierte
+120-/240-FPS-Kombinationen mit Hardware-AVC-Encoder, 30-FPS-Wiedergabe ohne Ton,
+MediaStore-Speicherung und teilbare Dateiprüfung. Die Kombinationen sind
+API-Kandidaten, keine am Gerät bestätigten Aufnahmen.
+
+Der [übermittelte Gerätebericht](docs/devices/25080RABDG-2026-09-01.md) nennt
+hinten FHD120/HD120/HD240 und vorne HD120. Reguläre 60 FPS, native 200 MP und
+eine zusätzliche Ultraweitwinkelkamera werden auf dieser Firmware nicht
+über die gemeldeten öffentlichen APIs exponiert.
+
 OEM-Angaben zu 200 MP, 60 FPS und Zeitlupe sind keine Zusage für Drittanbieter-
 Zugriff. Diagnosewerte sind keine bestandenen Aufnahmetests. Der aktuelle
 Nachweisstand steht in [docs/STATUS.md](docs/STATUS.md).

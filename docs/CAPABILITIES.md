@@ -1,24 +1,34 @@
 # Capability-Matrix
 
-Zielmodell: Redmi Note 15 Pro **5G**, nicht 4G. OEM-Angaben stammen aus der
-bereitgestellten Spezifikation; noch keine eigene Messung der Geräte-API.
+Zielmodell: Redmi Note 15 Pro **5G**, nicht 4G. Zusätzlich zu den OEM-Angaben
+liegt jetzt ein vom Nutzer übermittelter App-Diagnosebericht für Xiaomi
+`25080RABDG`, Android 16/API 36, Sicherheitspatch 2026-09-01 vor. Die Cloud
+hat das Gerät nicht direkt abgefragt. [Gerätebeleg und Abnahme](devices/25080RABDG-2026-09-01.md).
 
 | Kamera / Funktion | Status | API-/Datei-/Gerätenachweis |
 |---|---|---|
-| Hauptkamera 200 MP, OIS, Pixel-Binning | OEM_ADVERTISED | PENDING DEVICE; UHR, maximale Stream-Map und Pixelmodus untersuchen |
-| Ultraweitwinkel 8 MP | OEM_ADVERTISED | PENDING DEVICE; öffentliche ID/Physical-ID untersuchen |
-| Front 20 MP | OEM_ADVERTISED | PENDING DEVICE |
-| Hinten 1080p30/60, 4K30 | OEM_ADVERTISED | PENDING DEVICE; Encoder, tatsächliche Datei, PTS und Thermik |
-| Front 1080p30/60 | OEM_ADVERTISED | PENDING DEVICE; getrennt von hinten prüfen |
-| Ultraweitwinkel 1080p30 | OEM_ADVERTISED | PENDING DEVICE |
-| Hinten 720p120/240, 1080p120 | OEM_ADVERTISED | PENDING DEVICE; gesonderte High-Speed-Session erforderlich |
-| Front 720p120 | OEM_ADVERTISED | PENDING DEVICE; gesonderte High-Speed-Session erforderlich |
+| Hauptkamera JPEG | API_EXPOSED | Kamera 0: maximal 4080×3060 = 12,4848 MP; native Sensorgeometrie dadurch nicht bewiesen |
+| Native 200 MP | BLOCKED | Keine UHR-Capability, Maximum-Resolution-Map oder SENSOR_PIXEL_MODE; kein öffentlicher 200-MP-Pfad im Bericht |
+| Ultraweitwinkel 8 MP / 1080p30 | BLOCKED | Nur öffentliche IDs 0/1, keine Physical-IDs; keine separat erreichbare Ultraweitwinkelkamera |
+| Front JPEG | API_EXPOSED | Kamera 1: maximal 2592×1944 = 5,0388 MP; keine Aussage über physische Sensorauflösung |
+| Hinten 1080p30 / 4K30 | API_EXPOSED | CameraX FHD/UHD, normale AE-Ranges bis 30; Aufnahme, Ton, PTS und Thermik noch offen |
+| Front 1080p30 | API_EXPOSED | CameraX FHD, normale AE-Ranges bis 30; Dateiabnahme offen |
+| Normales 1080p60 vorne/hinten | BLOCKED | Kein normaler AE-60-FPS-Pfad gemeldet; Encoder-60-FPS-Fähigkeit reicht nicht |
+| Hinten 720p120/240, 1080p120 | API_EXPOSED | Constrained-High-Speed-Konfigurationen; Aufnahme-/Dateiabnahme offen |
+| Front 720p120 | API_EXPOSED | Constrained-High-Speed-Konfiguration; Aufnahme-/Dateiabnahme offen |
+| Stabilisierung | API_EXPOSED | Hinten OIS OFF/ON; vorne/hinten EIS OFF/ON; wirksame Aufnahmekombination noch offen |
 | HDR/Nacht/Portrait/Pro/ShootSteady | OEM_ADVERTISED | Machbarkeitsprüfung offen; kein Drittanbieter-Zugriff zugesagt |
 
 Die Diagnoseoberfläche liefert zunächst Fähigkeiten. Sie hebt diese Tabelle
 nicht automatisch auf `DEVICE_VERIFIED`. Pro Firmware Kamera-ID, Modus, Datum,
 Commit, Diagnoseexport, Originaldatei und Prüfbericht zusammen aufbewahren.
 1×/2×/4× bedeuten keine zusätzlichen Teleobjektive.
+
+`BLOCKED` ist auf die aktuell gemeldeten öffentlichen APIs und diese Firmware
+begrenzt, keine Aussage, dass die beworbenen Sensoren physisch fehlen. Keine
+versteckten IDs ausprobieren. 120-FPS-High-Speed macht normale 60-FPS-Aufnahme
+nicht automatisch verfügbar. Fotos/Videos wurden noch nicht als `CAPTURED`
+oder `DEVICE_VERIFIED` bestätigt.
 
 Quellen aus dem Anhang:
 

@@ -1,6 +1,9 @@
 import copy
 import unittest
-from validate_media import validate
+import subprocess
+import sys
+from pathlib import Path
+from validate_media import validate, validate_slow_motion
 
 
 def fixture(fps=30, seconds=6):
@@ -83,6 +86,66 @@ class MediaValidationTest(unittest.TestCase):
         for frame in data["frames"]:
             frame["best_effort_timestamp_time"] = str(float(frame["best_effort_timestamp_time"]) + 10)
         self.assertTrue(validate(data, "1080p30")["passed"])
+
+
+class SlowMotionValidationTest(unittest.TestCase):
+    @staticmethod
+    def slow_fixture(seconds=20, hd=False):
+        data = fixture(fps=30, seconds=seconds)
+        data["streams"].pop()
+        if hd:
+            data["streams"][0].update(width=1280, height=720)
+        return data
+
+    def test_120_capture_at_30_playback(self):
+        report = validate_slow_motion(self.slow_fixture(), "1080p30", 120, 5)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["measurements"]["estimated_capture_fps"], 120)
+        self.assertAlmostEqual(report["measurements"]["measured_slowdown_ratio"], 4)
+
+    def test_240_capture_at_30_playback_hd(self):
+        report = validate_slow_motion(self.slow_fixture(seconds=40, hd=True), "720p30", 240, 5)
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["measurements"]["estimated_capture_fps"], 240)
+
+    def test_ordinary_30_cannot_be_relabelled_120(self):
+        report = validate_slow_motion(self.slow_fixture(seconds=5), "1080p30", 120, 5)
+        self.assertFalse(report["passed"])
+        self.assertFalse(report["checks"]["estimated_capture_fps"])
+        self.assertFalse(report["checks"]["slowdown_ratio"])
+
+    def test_wrong_wall_time_rejected_both_directions(self):
+        for wall_time in (2.5, 10):
+            with self.subTest(wall_time=wall_time):
+                report = validate_slow_motion(self.slow_fixture(), "1080p30", 120, wall_time)
+                self.assertFalse(report["passed"])
+                self.assertFalse(report["checks"]["estimated_capture_fps"])
+
+    def test_unexpected_audio_rejected(self):
+        report = validate_slow_motion(fixture(seconds=20), "1080p30", 120, 5)
+        self.assertFalse(report["checks"]["audio_absent"])
+        self.assertFalse(report["passed"])
+
+    def test_invalid_parameters(self):
+        for mode, fps, wall in (("1080p60", 120, 5), ("1080p30", 60, 5),
+                               ("1080p30", 120, 0), ("1080p30", 120, -5),
+                               ("1080p30", 120, float("nan")),
+                               ("1080p30", 120, float("inf"))):
+            with self.subTest(mode=mode, fps=fps, wall=wall):
+                with self.assertRaises(ValueError):
+                    validate_slow_motion({}, mode, fps, wall)
+
+    def test_cli_invalid_parameter_pairs_and_audio_flag(self):
+        script = Path(__file__).with_name("validate_media.py")
+        for extra in (("--capture-fps", "120"),
+                      ("--capture-seconds", "5"),
+                      ("--capture-fps", "120", "--capture-seconds", "5"),
+                      ("--capture-fps", "120", "--capture-seconds", "nan", "--no-audio")):
+            result = subprocess.run([sys.executable, str(script), "does-not-exist.json",
+                                     "--mode", "720p30", *extra], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("error:", result.stderr)
+            self.assertNotIn("Ungültige ffprobe-Datei", result.stderr)
 
 
 if __name__ == "__main__":

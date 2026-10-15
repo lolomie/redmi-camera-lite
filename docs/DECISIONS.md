@@ -30,3 +30,12 @@ verlinkt; öffentliche API-Verfügbarkeit wurde daraus ausdrücklich nicht abgel
 9. **Rotation ohne Controller-Neustart.** Die Activity behandelt Orientierung/
    Bildschirmgröße selbst; Compose behält dieselbe PreviewView. Laufende Videos
    behalten ihre Startorientierung. Prozessende ist keine fortsetzbare Aufnahme.
+10. **Camera2 nur für konkret exponierte Zeitlupe.** Der Nutzerbericht enthält
+    vier feste High-Speed-Kombinationen. Daher eigener Camera2-Pfad statt
+    gewöhnlicher CameraX-60-FPS-Einstellung. 120/240-Zielaufnahme und 30-FPS-
+    Wiedergabe sind getrennt, Audio bewusst deaktiviert. Eine High-Speed-
+    Sitzung macht keinen gewöhnlichen 60-FPS-Modus verfügbar.
+11. **Firmware-begrenzte Einschränkungen.** Der Bericht exponiert keinen
+    UHR-Pfad und keine zusätzliche Ultraweitwinkel-ID. Diese Aufgaben sind
+    mit konkretem API-Grund blockiert; kein Root-/Vendor-Workaround. Größere
+    OEM-Sensoren werden nicht aus kleineren JPEG-Ausgaben als fehlend erklärt.

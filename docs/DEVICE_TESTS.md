@@ -1,7 +1,9 @@
 # Geräteabnahme — PENDING DEVICE
 
-Noch keine Kameraaufnahme, Installation, Temperaturmessung oder Firmware-Abnahme
-am Redmi Note 15 Pro 5G belegt. Cloud-Builds ersetzen diese Tests nicht.
+Installation und App-Diagnose auf Xiaomi 25080RABDG/Android 16 sind durch den
+übermittelten Nutzerbericht belegt. Foto-/Videoaufnahme, Temperaturmessung und
+vollständige Firmware-Abnahme bleiben offen. Cloud-Builds ersetzen diese Tests
+nicht. [Geräteprofil](devices/25080RABDG-2026-09-01.md).
 
 ## Protokollkopf
 
@@ -23,7 +25,8 @@ prüfen. Originalmedien nicht automatisch veröffentlichen.
    Sicht-/Hörprüfung, A/V-Synchronität und ffprobe-Validator; danach Dauerlauf
    mindestens fünf Minuten bei dokumentierten Bedingungen.
 6. Diagnose exportieren. Nur exponierte fortgeschrittene Kombinationen
-   separat prüfen: 1080p60 vorne/hinten, 4K30 hinten, Ultraweitwinkel.
+   separat prüfen: hier 4K30 hinten und vier High-Speed-Paare. Reguläre 1080p60,
+   native 200 MP und Ultraweitwinkel sind im gelieferten API-Profil blockiert.
 7. 200 MP erst mit UHR-Capability, maximaler Stream-Konfiguration und gesetztem
    Maximum-Resolution-Pixelmodus untersuchen; Originaldatei samt Capture-
    Metadaten sichern. Dimensionen ohne Sensorbeleg sind kein Native-Nachweis.
@@ -57,13 +60,19 @@ Frames mit einer gefälschten langen Dauerangabe bestehen nicht.
 Die zwei vorbereiteten `CameraDeviceTest`-Instrumentationstests prüfen echte
 FHD30-/JPEG-Samples vorne/hinten, Audiotracks und hinten Rotation. Sie sind
 kompiliert, aber in diesem Cloud-Lauf nicht ausgeführt. Anleitung: INSTALL.
+Vier zusätzliche `SlowMotionDeviceTest`-Tests prüfen FHD120/HD120/HD240 hinten
+und HD120 vorne. Sie erteilen nur Kamerarecht und erwarten tonlose Clips mit
+passender verlangsamter Wiedergabe. Auch diese Tests wurden hier nicht am Gerät
+ausgeführt. Gespeicherte Medien und den geteilten Dateiprüfbericht behalten.
 
 | Test | Ergebnis | Beleg |
 |---|---|---|
-| Installation/Preview/Rechte/Lifecycle | PENDING DEVICE | — |
+| Installation/App-Diagnose | Nutzerbeleg vorhanden | Bericht Xiaomi 25080RABDG/API 36 |
+| Preview/Rechte/Lifecycle | PENDING DEVICE | — |
 | JPEG vorne/hinten | PENDING DEVICE | — |
 | Video 1080p30 mit Audio vorne/hinten | PENDING DEVICE | — |
-| 1080p60 / 4K30 | PENDING DEVICE | — |
-| Native 200 MP / Ultraweitwinkel | PENDING DEVICE | — |
+| Normale 1080p60 | BLOCKED | Kein gewöhnlicher AE-/Stream-Pfad im Bericht |
+| 4K30 hinten | API_EXPOSED; Aufnahme PENDING DEVICE | CameraX UHD |
+| Native 200 MP / Ultraweitwinkel | BLOCKED | UHR/Maximalmap bzw. öffentliche zusätzliche ID fehlen |
 | Slow Motion / Stabilisierung | PENDING DEVICE | — |
 | Thermik/Akku/Dauerlauf | PENDING DEVICE | — |

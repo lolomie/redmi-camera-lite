@@ -14,8 +14,19 @@ Aufnahmefinalisierung ist vor Moduswechsel abzuwarten.
 CameraX-Videoqualität ist kein FPS-Nachweis. Erweiterte Modi werden anhand von
 Kamera-, Stream-, FPS- und Encoderinformationen untersucht. Die Diagnose ist
 eine Momentaufnahme der konkreten Firmware, keine Hardware-Zertifizierung.
-Camera2-High-Speed-Sessions und Maximum-Resolution-Capture brauchen eine eigene
-Implementierung und Gerätebelege, bevor sie als Aufnahmeoption erscheinen.
+`SlowMotionController` besitzt den separaten Camera2-High-Speed-Pfad. Der
+Wechsel entfernt zunächst die CameraX-Ansicht und ihre Use-Cases. Der Controller
+öffnet nur öffentliche Kamera-IDs und feste 120-/240-FPS-Konfigurationen mit
+passender Hardware-AVC-Größe/Rate. Recorder-Capture-Rate und 30-FPS-Wiedergabe
+sind getrennt; Mikrofon bleibt aus. Pending-MediaStore-Zeilen werden erst nach
+erfolgreichem Abschluss und einfacher Dateivalidierung veröffentlicht.
+Eigene ungültige Dateien werden entfernt; fremde Medien bleiben unberührt.
+
+`RecordedClipInspector` untersucht danach auf einem Hintergrundthread die
+tatsächlichen Dimensionen, PTS, Audiotracks und Framezahl gegen monotone reale
+Aufnahmedauer. Der Bericht belegt Dateikriterien, keine unterschiedlichen
+nativen Sensorframes. Maximum-Resolution-Capture ist im gelieferten Profil
+nicht exponiert und wird nicht als künstlicher Modus angeboten.
 
 ## Toolchain
 

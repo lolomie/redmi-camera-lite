@@ -22,3 +22,14 @@ Geräteprüfungen stehen bis zu dokumentierten Messungen auf `PENDING DEVICE`.
 | P2 | Timer/Grid/Horizont/Belichtung/HEVC | Product Owner | Nach P0/P1 einzeln priorisieren; keine ungeprüften OEM-Versprechen |
 
 Aktuelle Resultate: [STATUS.md](STATUS.md). Geräteabnahme: [DEVICE_TESTS.md](DEVICE_TESTS.md).
+
+## Gerätebasierte Priorisierung
+
+Nutzerdiagnose Xiaomi 25080RABDG/API 36 liegt vor (siehe
+[Gerätebericht](devices/25080RABDG-2026-09-01.md)). Installation und Diagnose
+sind belegt; Foto-/Videoabnahmen bleiben offen. Zuerst 30-FPS-Alltagspfad und
+Rückwechsel/Lifecycle sichern. Danach die vier exponierten High-Speed-
+Kombinationen separat abnehmen. Front ist Fixfokus; AF-UI dort deaktivieren,
+Blitz nur hinten. Native 200 MP, Ultraweitwinkel und normales 60 FPS bleiben
+auf diesem API-/Firmware-Stand blockiert; kein Fake-Modus und keine Hidden-ID-
+Suche. Encodergrenzen dürfen diese Sperre nicht aufheben.
