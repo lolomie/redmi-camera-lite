@@ -27,7 +27,7 @@
 ## Offen
 
 Git-Remote-Lesezugriff bestätigt; GitHub-API-Aufruf antwortet `Forbidden`.
-Remote-CI-/Push-Stand steht im Übergabenachweis; eine Workflow-Datei allein
+Remote-CI-/Push-Stand steht in [HANDOFF.md](HANDOFF.md); eine Workflow-Datei allein
 beweist keinen ausgeführten GitHub-Lauf.
 Alle physischen Kamera-/Audio-/Thermiktests: `PENDING DEVICE`.
 60 FPS, 200-MP-Capture und High-Speed-Aufnahmepfade sind noch nicht freigeschaltet

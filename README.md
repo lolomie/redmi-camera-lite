@@ -40,6 +40,7 @@ den vorhandenen Netzwerkproxy einschließlich Zertifikatsprüfung.
 
 - [Installation und Artefakte](docs/INSTALL.md)
 - [Stand und Testnachweise](docs/STATUS.md)
+- [Übergabe, GitHub und offene Schritte](docs/HANDOFF.md)
 - [Gerätetests und Medienprüfung](docs/DEVICE_TESTS.md)
 - [Backlog mit Akzeptanzkriterien](docs/BACKLOG.md)
 - [Architektur](docs/ARCHITECTURE.md), [Entscheidungen](docs/DECISIONS.md)
